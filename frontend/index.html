@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>乳腺癌新辅助化疗 pCR 预测</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v12" /><path d="M5 9l7-6 7 6" />
+          <path d="M4 21h16" />
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>乳腺癌新辅助化疗 pCR 预测系统</h1>
+        <p>基于 MRI 影像组学 · MSH 模型 + 融合模型</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ 左栏：数据上传 + 参数输入 ============ -->
+    <section class="left-panel">
+      <div class="card">
+        <div class="card-title">
+          <h2>① 数据上传</h2>
+          <span class="hint">支持 .nii.gz 格式</span>
+        </div>
+        <div class="upload-grid">
+          <div class="dropzone" id="drop-image" tabindex="0">
+            <input type="file" id="file-image" accept=".nii,.nii.gz,.gz" hidden />
+            <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <div class="dz-label">
+              <strong>原图影像</strong>
+              <span>Image.nii.gz</span>
+            </div>
+            <div class="dz-status" id="status-image">点击或拖拽上传</div>
+          </div>
+
+          <div class="dropzone" id="drop-mask" tabindex="0">
+            <input type="file" id="file-mask" accept=".nii,.nii.gz,.gz" hidden />
+            <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a4 4 0 0 1 4 4c0 2-1.5 3-3 4.5C10.5 12 9 11 9 9" />
+              <circle cx="12" cy="14" r="4" />
+              <path d="M5 21h14" />
+            </svg>
+            <div class="dz-label">
+              <strong>靶区勾画</strong>
+              <span>ROI.nii.gz</span>
+            </div>
+            <div class="dz-status" id="status-mask">点击或拖拽上传</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h2>② 临床病理信息</h2>
+        </div>
+
+        <div class="param-row">
+          <label>mT 分期</label>
+          <div class="segmented" data-key="stage">
+            <button class="seg active" data-value="0">早期</button>
+            <button class="seg" data-value="1">晚期</button>
+          </div>
+        </div>
+
+        <div class="param-row">
+          <label>HR 状态</label>
+          <div class="segmented" data-key="hr">
+            <button class="seg active" data-value="0">阴性</button>
+            <button class="seg" data-value="1">阳性</button>
+          </div>
+        </div>
+
+        <div class="param-row">
+          <label>HER2 状态</label>
+          <div class="segmented" data-key="her2">
+            <button class="seg active" data-value="0">阴性</button>
+            <button class="seg" data-value="1">阳性</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="analyze-btn" id="btn-analyze" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
+        </svg>
+        <span id="btn-text">开始分析</span>
+      </button>
+      <div class="error-box" id="error-box" hidden></div>
+    </section>
+
+    <!-- ============ 右栏：预测概率 + 看板 ============ -->
+    <section class="right-panel">
+      <div class="prob-cards">
+        <div class="prob-card msh">
+          <div class="prob-head">
+            <h3>MSH 模型预测概率</h3>
+            <span class="model-tag">影像模型</span>
+          </div>
+          <div class="prob-value" id="msh-value">--</div>
+          <div class="prob-sub">截断值 0.442</div>
+          <div class="prob-badge" id="msh-badge">待计算</div>
+        </div>
+
+        <div class="prob-card fusion">
+          <div class="prob-head">
+            <h3>融合模型预测概率</h3>
+            <span class="model-tag">影像 + 临床</span>
+          </div>
+          <div class="prob-value" id="fusion-value">--</div>
+          <div class="prob-sub">截断值 0.391</div>
+          <div class="prob-badge" id="fusion-badge">待计算</div>
+        </div>
+      </div>
+
+      <div class="metrics-strip" id="metrics-strip" hidden>
+        <div class="metric"><span>Compactness</span><b id="m-compactness">--</b></div>
+        <div class="metric"><span>3D Topological ITH</span><b id="m-topo">--</b></div>
+      </div>
+
+      <div class="dashboards">
+        <div class="tabs">
+          <button class="tab active" data-tab="morph">形态学看板</button>
+          <button class="tab" data-tab="ith">生境异质性看板</button>
+        </div>
+        <div class="tab-panel" id="panel-morph">
+          <img id="morph-img" alt="形态学看板" hidden />
+          <div class="placeholder" id="placeholder-morph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16v16H4z" /><path d="M4 15l4-4 3 3 4-4 5 5" /><circle cx="9" cy="9" r="1.5" />
+            </svg>
+            <p>分析完成后在此展示形态学看板</p>
+          </div>
+        </div>
+        <div class="tab-panel" id="panel-ith" hidden>
+          <img id="ith-img" alt="生境异质性看板" hidden />
+          <div class="placeholder" id="placeholder-ith">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="5" cy="6" r="2" /><circle cx="12" cy="6" r="2" /><circle cx="19" cy="6" r="2" />
+              <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
+              <circle cx="5" cy="18" r="2" /><circle cx="12" cy="18" r="2" /><circle cx="19" cy="18" r="2" />
+            </svg>
+            <p>分析完成后在此展示生境异质性看板</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="loading-overlay" id="loading" hidden>
+    <div class="spinner"></div>
+    <p id="loading-text">正在计算影像组学特征…</p>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+*.nii.gz
+.DS_Store

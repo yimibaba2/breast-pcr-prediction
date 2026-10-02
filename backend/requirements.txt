@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+numpy
+SimpleITK
+scikit-learn
+scipy
+scikit-image
+matplotlib
